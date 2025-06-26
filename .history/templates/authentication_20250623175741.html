@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">🔐 Live Facial Recognition (MediaPipe)</h1>
+
+<div class="alert alert-info">
+    <strong>🚀 Using Google MediaPipe Technology</strong><br>
+    Advanced face detection and recognition powered by Google's MediaPipe framework.
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>📹 Live Camera Feed</h5>
+            </div>
+            <div class="card-body">
+                <video id="video" width="100%" height="400" autoplay></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+                
+                <div class="mt-3">
+                    <button class="btn btn-success" onclick="startCamera()">🎥 Start Camera</button>
+                    <button class="btn btn-primary" onclick="authenticateWithMediaPipe()">🔍 Authenticate</button>
+                    <button class="btn btn-danger" onclick="stopCamera()">⏹️ Stop Camera</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>📊 Authentication Result</h5>
+            </div>
+            <div class="card-body">
+                <div id="authResult">
+                    <p class="text-muted">Click "Authenticate" to process facial recognition using MediaPipe</p>
+                </div>
+                
+                <hr>
+                
+                <h6>👤 Enroll New Employee</h6>
+                <select class="form-control mb-2" id="enrollEmployeeSelect">
+                    <option value="">Select employee to enroll...</option>
+                    {% for employee in employees %}
+                    <option value="{{ employee.employee_id }}">{{ employee.full_name }}</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-info btn-sm" onclick="enrollWithMediaPipe()">📷 Capture Face</button>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>ℹ️ MediaPipe Info</h5>
+            </div>
+            <div class="card-body">
+                <small>
+                    <strong>Technology:</strong> Google MediaPipe<br>
+                    <strong>Detection Model:</strong> BlazeFace<br>
+                    <strong>Confidence Threshold:</strong> 50%<br>
+                    <strong>Perfect for:</strong> Prototypes & Demos
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let context = canvas.getContext('2d');
+let stream = null;
+
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: 640, 
+                height: 480,
+                facingMode: 'user'
+            } 
+        });
+        video.srcObject = stream;
+        document.querySelector('.btn-success').textContent = '✅ Camera Active (MediaPipe Ready)';
+    } catch (err) {
+        alert('Error accessing camera: ' + err.message);
+    }
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        document.querySelector('.btn-success').textContent = '🎥 Start Camera';
+    }
+}
+
+function captureImage() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.8);
+}
+
+async function authenticateWithMediaPipe() {
+    if (!stream) {
+        alert('Please start camera first');
+        return;
+    }
+    
+    const resultDiv = document.getElementById('authResult');
+    resultDiv.innerHTML = '<div class="alert alert-info">🔄 Processing with MediaPipe...</div>';
+    
+    try {
+        const imageData = captureImage();
+        
+        const response = await fetch('/authenticate_face_mediapipe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_data: imageData })
+        });
+        
+        const data = await response.json();
+        
+        if (data.result === 'SUCCESS') {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h5>✅ Authentication Successful</h5>
+                    <p><strong>Employee:</strong> ${data.employee_name}</p>
+                    <p><strong>Role:</strong> ${data.role}</p>
+                    <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</p>
+                    <p><strong>Processing:</strong> ${data.processing_time}ms</p>
+                    <p><strong>Technology:</strong> Google MediaPipe</p>
+                    <p><strong>Status:</strong> Access Granted ✅</p>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5>❌ Authentication Failed</h5>
+                    <p><strong>Reason:</strong> ${data.message || 'Recognition failed'}</p>
+                    <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</p>
+                    <p><strong>Technology:</strong> Google MediaPipe</p>
+                    <p><strong>Status:</strong> Access Denied ❌</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = '<div class="alert alert-danger">❌ Error processing with MediaPipe</div>';
+    }
+}
+
+async function enrollWithMediaPipe() {
+    const employeeId = document.getElementById('enrollEmployeeSelect').value;
+    if (!employeeId) {
+        alert('Please select an employee');
+        return;
+    }
+    
+    if (!stream) {
+        alert('Please start camera first');
+        return;
+    }
+    
+    try {
+        const imageData = captureImage();
+        
+        const response = await fetch('/enroll_face', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                image_data: imageData,
+                employee_id: employeeId 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`✅ Face enrolled successfully with MediaPipe!\nConfidence: ${(data.confidence * 100).toFixed(1)}%`);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    } catch (error) {
+        alert('❌ Error enrolling face with MediaPipe');
+    }
+}
+
+// Auto-start camera when page loads
+window.onload = function() {
+    startCamera();
+};
+</script>
+{% endblock %}

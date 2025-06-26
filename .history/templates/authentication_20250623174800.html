@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">🔐 Authentication Simulator</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>📷 Camera Feed</h5>
+            </div>
+            <div class="card-body">
+                <div class="camera-placeholder bg-dark text-white text-center p-5">
+                    <h3>📹 Live Camera Feed</h3>
+                    <p>Facial Recognition Active</p>
+                    <div class="spinner-border text-light d-none" id="processingSpinner">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>🎛️ Authentication Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Select Employee to Simulate</label>
+                    <select class="form-control" id="employeeSelect">
+                        <option value="">Choose an employee...</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.employee_id }}">{{ employee.full_name }} ({{ employee.role.role_name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary btn-lg w-100" onclick="simulateAuth()">
+                    🔍 Simulate Authentication
+                </button>
+                
+                <div id="authResult" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function simulateAuth() {
+    const employeeId = document.getElementById('employeeSelect').value;
+    const resultDiv = document.getElementById('authResult');
+    const spinner = document.getElementById('processingSpinner');
+    
+    if (!employeeId) {
+        resultDiv.innerHTML = '<div class="alert alert-warning">Please select an employee first!</div>';
+        return;
+    }
+    
+    spinner.classList.remove('d-none');
+    resultDiv.innerHTML = '<div class="alert alert-info">🔄 Processing facial recognition...</div>';
+    
+    fetch('/simulate_auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: employeeId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        spinner.classList.add('d-none');
+        const alertClass = data.result === 'SUCCESS' ? 'alert-success' : 'alert-danger';
+        const icon = data.result === 'SUCCESS' ? '✅' : '❌';
+        
+        resultDiv.innerHTML = `
+            <div class="alert ${alertClass}">
+                <h5>${icon} Authentication ${data.result}</h5>
+                <p><strong>Employee:</strong> ${data.employee_name}</p>
+                <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</p>
+                <p><strong>Processing Time:</strong> ${data.processing_time}ms</p>
+                <p><strong>Result:</strong> ${data.result === 'SUCCESS' ? 'Access Granted' : 'Access Denied'}</p>
+            </div>
+        `;
+    })
+    .catch(error => {
+        spinner.classList.add('d-none');
+        resultDiv.innerHTML = '<div class="alert alert-danger">❌ Error processing authentication</div>';
+    });
+}
+</script>
+{% endblock %}

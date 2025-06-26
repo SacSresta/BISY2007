@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">📋 Authentication Audit Logs</h1>
+
+<div class="card">
+    <div class="card-header">
+        <h5>🔍 Recent Authentication Attempts</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>Timestamp</th>
+                    <th>Employee</th>
+                    <th>Result</th>
+                    <th>Confidence</th>
+                    <th>Location</th>
+                    <th>Processing Time</th>
+                    <th>Failure Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log, employee in logs %}
+                <tr>
+                    <td>{{ log.log_id }}</td>
+                    <td>{{ log.attempt_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>
+                        <strong>{{ employee.full_name }}</strong><br>
+                        <small class="text-muted">{{ employee.department }}</small>
+                    </td>
+                    <td>
+                        <span class="badge {% if log.result == 'SUCCESS' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ log.result }}
+                        </span>
+                    </td>
+                    <td>{{ "%.1f"|format(log.confidence_score * 100) }}%</td>
+                    <td>{{ log.device_location }}</td>
+                    <td>{{ log.processing_time_ms }}ms</td>
+                    <td>{{ log.failure_reason or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

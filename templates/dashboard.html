@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">📊 System Dashboard</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5>👥 Total Employees</h5>
+                <h2>{{ total_employees }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5>✅ Active Employees</h5>
+                <h2>{{ active_employees }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5>🔍 Today's Auth</h5>
+                <h2>{{ today_auths }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h5>📈 Success Rate</h5>
+                <h2>{{ success_rate }}%</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5>🕐 Recent Authentication Attempts</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Employee</th>
+                    <th>Result</th>
+                    <th>Confidence</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td>{{ log.attempt_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ log.employee.full_name }}</td>
+                    <td>
+                        <span class="badge {% if log.result == 'SUCCESS' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ log.result }}
+                        </span>
+                    </td>
+                    <td>{{ "%.1f"|format(log.confidence_score * 100) }}%</td>
+                    <td>{{ log.device_location }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
